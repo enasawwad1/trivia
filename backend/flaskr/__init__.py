@@ -1,34 +1,40 @@
 import os
 from flask import Flask, request, abort, jsonify
-from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+from flask_sqlalchemy import SQLAlchemy
 import random
 
-from models import setup_db, Question, Category
+from backend.models import setup_db, Category
 
 QUESTIONS_PER_PAGE = 10
 
+
 def create_app(test_config=None):
-  # create and configure the app
-  app = Flask(__name__)
-  setup_db(app)
-  
-  '''
-  @TODO: Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs
-  '''
+    # create and configure the app
+    app = Flask(__name__)
+    setup_db(app)
+    CORS(app)
 
-  '''
-  @TODO: Use the after_request decorator to set Access-Control-Allow
-  '''
+    @app.after_request
+    def after_request(response):
+        response.headers.add('Access-Control-Allow-Headers',
+                             'Content-Type,Authorization,true')
+        response.headers.add('Access-Control-Allow-Methods',
+                             'GET,PUT,POST,DELETE,OPTIONS')
+        return response
 
-  '''
-  @TODO: 
-  Create an endpoint to handle GET requests 
-  for all available categories.
-  '''
+    @app.route('/categories')
+    def get_categories():
+        categories_list = Category.query.all()
+        if len(categories_list) == 0:
+            abort(404)
 
+        return jsonify({
+            'success': True,
+            'categories': {category.id: category.type for category in categories_list}
+        })
 
-  '''
+    '''
   @TODO: 
   Create an endpoint to handle GET requests for questions, 
   including pagination (every 10 questions). 
@@ -41,15 +47,17 @@ def create_app(test_config=None):
   Clicking on the page numbers should update the questions. 
   '''
 
-  '''
+    '''
   @TODO: 
   Create an endpoint to DELETE question using a question ID. 
+  
+  
 
   TEST: When you click the trash icon next to a question, the question will be removed.
   This removal will persist in the database and when you refresh the page. 
   '''
 
-  '''
+    '''
   @TODO: 
   Create an endpoint to POST a new question, 
   which will require the question and answer text, 
@@ -60,7 +68,7 @@ def create_app(test_config=None):
   of the questions list in the "List" tab.  
   '''
 
-  '''
+    '''
   @TODO: 
   Create a POST endpoint to get questions based on a search term. 
   It should return any questions for whom the search term 
@@ -71,7 +79,7 @@ def create_app(test_config=None):
   Try using the word "title" to start. 
   '''
 
-  '''
+    '''
   @TODO: 
   Create a GET endpoint to get questions based on category. 
 
@@ -80,8 +88,7 @@ def create_app(test_config=None):
   category to be shown. 
   '''
 
-
-  '''
+    '''
   @TODO: 
   Create a POST endpoint to get questions to play the quiz. 
   This endpoint should take category and previous question parameters 
@@ -93,12 +100,28 @@ def create_app(test_config=None):
   and shown whether they were correct or not. 
   '''
 
-  '''
-  @TODO: 
-  Create error handlers for all expected errors 
-  including 404 and 422. 
-  '''
-  
-  return app
+    @app.errorhandler(422)
+    def unprocessable(error):
+        return jsonify({
+            "success": False,
+            "error": 422,
+            "message": "unprocessable"
+        }), 422
 
-    
+    @app.errorhandler(400)
+    def bad_request(error):
+        return jsonify({
+            "success": False,
+            "error": 400,
+            "message": "bad request"
+        }), 400
+
+    @app.errorhandler(404)
+    def not_found(error):
+        return jsonify({
+            "success": False,
+            "error": 404,
+            "message": "resource not found"
+        }), 404
+
+    return app
